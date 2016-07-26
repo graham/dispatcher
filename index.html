@@ -1,14 +1,36 @@
 <html>
   <head>
     <!-- First we include the library that will help us manage modules. -->
+    <script>
+     var exports = {}
+    </script>
     <script src="./dist/dispatch.js"> </script>
     <!-- Feel free to add any custom code below here. -->
+    <script>
+     function getElement(id) {
+         return document.getElementById(id)
+     }
+
+     var d = new Dispatcher();
+     d.listen_fn('user.accounts.*.balance.dollars', function(payload, event_routing_key) {
+         getElement("timer_latch").innerHTML = "route: " + event_routing_key + ' -> ' + JSON.stringify(payload);
+     });
+
+    </script>
   </head>
 
   <body>
     <div id='hello_latch'>load...</div>
-    <div id='timer_latch'>load...</div>    
-  </body>
+    <div id='timer_latch'>load...</div>
 
+  </body>
+  <script>
+   var notify_data = {'accounts':{'personal':{'balance':{'dollars':'$200.00', 'yen':"12931293"}}}};
+   var more_data =   {'accounts':{'business':{'balance':{'dollars':'$2999.00', 'yen':"9999"}}}};
+    (function(){
+       d.notify("user", notify_data);
+       d.notify("user", more_data);
+    })();
+  </script>
 </html>
       

@@ -56,29 +56,42 @@
    or objects.
 */
 
-function dispatch_object_to_target(event:string,
-                                   routing_search:string,
-                                   payload:any,
-                                   target_fn:any):any {
+function dispatch_object_to_target(_dispatcher:Dispatcher, event:string, routing_search:string, payload:any, target_fn:any):any {
     let sp_event:Array<string> = event.split('.');
     let sp_search:Array<string> = routing_search.split('.');
     let final_payload = payload;
+    let routing_path = [];
 
     for(let index=0; index < sp_search.length; index++) {
         let event_part = sp_event[index];
         let search_part = sp_search[index];
+
         if (event_part == undefined) {
-            if (final_payload[search_part] != undefined) {
-                let d = {};
-                d[search_part] = final_payload[search_part];
-                final_payload = d;
+            if (search_part == '*') {
+                let new_routing_root = routing_path.join('.');
+                for(let i in final_payload) {
+                    let new_routing = new_routing_root + '.' + i;
+                    console.log("new event: " + new_routing);
+                    _dispatcher.notify(new_routing, final_payload[i]);
+                }
+            } else if (final_payload[search_part] != undefined) {
+                final_payload = final_payload[search_part];
+                if (index == sp_search.length - 1) {
+                    let ret_d = {};
+                    ret_d[search_part] = final_payload;
+                    final_payload = ret_d
+                }                    
+                routing_path.push(search_part);
+            } else {
+                return false;
             }
         } else if (search_part != '*' && search_part != event_part) {
             return false;
+        } else {
+            routing_path.push(event_part);
         }
     }
-
-    return target_fn(final_payload);    
+    return target_fn(final_payload, routing_path.join('.'));
 };
 
 
@@ -150,8 +163,9 @@ class Dispatcher {
             // these events more events came in.
             // lets give the UI thread a chance to render
             // and we'll start dispatching again.
+            let _this = this;
             setTimeout(function() {
-                this.flush_queue();
+                _this.flush_queue();
             }, 5);
         } else {
             // No other events were created, so we can
@@ -171,7 +185,7 @@ class Dispatcher {
 
             try {
                 // Attempt to dispatch, with some extra rules to dig into objects.
-                dispatch_object_to_target(event_routing_key, object_routing, args, object_target_fn);
+                dispatch_object_to_target(this, event_routing_key, object_routing, args, object_target_fn);
 
                 // If we make it here, we didn't throw an exception (or we didn't call fn)
                 remaining_listeners.push(row);
