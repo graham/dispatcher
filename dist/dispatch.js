@@ -104,6 +104,7 @@ var Dispatcher = (function () {
         this.listeners = [];
         this.event_queue = [];
         this.is_dispatching = false;
+        this.is_capturing_local_storage_events = false;
         this.function_name = 'setState';
     }
     // Call the `function_name` on the target object. By default
@@ -122,6 +123,27 @@ var Dispatcher = (function () {
         this.event_queue.push([event_routing_key, args]);
         if (this.is_dispatching == false) {
             this.flush_queue();
+        }
+    };
+    // Broadcast an event to all handlers, regardless of their listening key.
+    // This can be used to reset all of your handlers, or to notify them of some
+    // other global change.
+    Dispatcher.prototype.broadcast = function (event) {
+        for (var _i = 0, _a = this.listeners; _i < _a.length; _i++) {
+            var obj = _a[_i];
+            var fn = obj[1];
+            fn(event, '_');
+        }
+    };
+    // 
+    Dispatcher.prototype.flush = function (event_routing_key, args) {
+        for (var _i = 0, _a = this.listeners; _i < _a.length; _i++) {
+            var obj = _a[_i];
+            var fn = obj[1];
+            var key = obj[0];
+            if (key.substring(0, event_routing_key.length) == event_routing_key) {
+                fn(args, '-');
+            }
         }
     };
     Dispatcher.prototype.flush_queue = function () {
@@ -174,6 +196,20 @@ var Dispatcher = (function () {
             }
         }
         this.listeners = remaining_listeners;
+    };
+    Dispatcher.prototype.capture_local_storage_changes = function () {
+        var _this = this;
+        if (this.is_capturing_local_storage_events == false) {
+            var originalSetItem_1 = localStorage.setItem;
+            localStorage.setItem = function () {
+                originalSetItem_1.apply(this, arguments);
+                _this.notify(arguments[0], arguments[1]);
+            };
+            this.is_capturing_local_storage_events = true;
+        }
+        else {
+            console.log("successive calls to capture_local_storage_changes are ignored.");
+        }
     };
     return Dispatcher;
 }());

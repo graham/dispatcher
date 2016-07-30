@@ -109,6 +109,11 @@ class Dispatcher {
     // us from infinite looping (along with the queue).
     is_dispatching: boolean;
 
+    // is capturing local storage events. We don't need to track this
+    // but it'll make it so more than one call to the method doesn't
+    // wrap the event handler unnessicarily.
+    is_capturing_local_storage_events: boolean;
+    
     // Name of the function on target objects that will be called
     // whenever we receive a event that object is listening for.
     function_name:string;
@@ -117,6 +122,7 @@ class Dispatcher {
         this.listeners = [];
         this.event_queue = [];
         this.is_dispatching = false;
+        this.is_capturing_local_storage_events = false;
         this.function_name = 'setState';
     }
 
@@ -139,6 +145,28 @@ class Dispatcher {
         if (this.is_dispatching == false) {
             this.flush_queue();
         }
+    }
+
+    // Broadcast an event to all handlers, regardless of their listening key.
+    // This can be used to reset all of your handlers, or to notify them of some
+    // other global change.
+    broadcast(event) {
+        for(let obj of this.listeners) {
+            let fn = obj[1];
+            fn(event, '_');
+        }
+    }
+
+    // 
+    flush(event_routing_key, args) {
+        for(let obj of this.listeners) {
+            let fn = obj[1];
+            let key = obj[0];
+            if (key.substring( 0, event_routing_key.length ) == event_routing_key) {
+                fn(args, '-');
+            }
+        }
+        
     }
 
     flush_queue() {
@@ -197,6 +225,24 @@ class Dispatcher {
 
         this.listeners = remaining_listeners;
     }
+
+    capture_local_storage_changes() {
+        let _this = this;
+        if (this.is_capturing_local_storage_events == false) {
+            let originalSetItem = localStorage.setItem;
+            localStorage.setItem = function(){
+                originalSetItem.apply(this, arguments);
+                _this.notify(arguments[0], arguments[1]);
+            }
+            this.is_capturing_local_storage_events = true;
+        } else {
+            console.log("successive calls to capture_local_storage_changes are ignored.");
+        }
+    }    
 }
 
-export { Dispatcher };
+
+export {
+    Dispatcher,
+    capture_local_storage_changes
+};
