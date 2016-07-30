@@ -1,7 +1,7 @@
 #     Dispatcher
 ####  Managing data in your web application.
 
-Dispatcher is a 
+This readme is not complete, should be updated in a day or two.
 
 ----
 
