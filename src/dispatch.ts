@@ -61,6 +61,7 @@ function dispatch_object_to_target(_dispatcher:Dispatcher, event:string, routing
     let sp_search:Array<string> = routing_search.split('.');
     let final_payload = payload;
     let routing_path = [];
+    let last_successful_search_part = null;
 
     for(let index=0; index < sp_search.length; index++) {
         let event_part = sp_event[index];
@@ -76,11 +77,7 @@ function dispatch_object_to_target(_dispatcher:Dispatcher, event:string, routing
                 }
             } else if (final_payload[search_part] != undefined) {
                 final_payload = final_payload[search_part];
-                if (index == sp_search.length - 1) {
-                    let ret_d = {};
-                    ret_d[search_part] = final_payload;
-                    final_payload = ret_d
-                }                    
+                last_successful_search_part = search_part;
                 routing_path.push(search_part);
             } else {
                 return false;
@@ -88,9 +85,17 @@ function dispatch_object_to_target(_dispatcher:Dispatcher, event:string, routing
         } else if (search_part != '*' && search_part != event_part) {
             return false;
         } else {
+            last_successful_search_part = event_part;
             routing_path.push(event_part);
         }
     }
+
+    if (last_successful_search_part != null) {
+        var d = {};
+        d[last_successful_search_part] = final_payload;
+        final_payload = d;
+    }
+
     return target_fn(final_payload, routing_path.join('.'));
 };
 
@@ -130,7 +135,10 @@ class Dispatcher {
     // this calls setState (which is the norm for React).
     listen(routing_key, target) {
         let fn_name = this.function_name;
-        this.listeners.push( [routing_key, function(args) { target[fn_name](args) }] );
+        this.listeners.push([routing_key,
+                             function() {
+                                 target.setState(arguments[0]);
+                             }]);
     }
 
     // Listen with a custom function callback.
@@ -140,7 +148,9 @@ class Dispatcher {
 
     // Notify listeners that you have data for a key.
     notify(event_routing_key, args) {
-        console.log('notify: ' + event_routing_key + ' with ' + JSON.stringify(args));
+        if (event_routing_key.indexOf('*') > -1) {
+            throw "You can't notify with a *; use flush or broadcast.";
+        }
         this.event_queue.push([event_routing_key, args]);
         if (this.is_dispatching == false) {
             this.flush_queue();
@@ -226,6 +236,9 @@ class Dispatcher {
         this.listeners = remaining_listeners;
     }
 
+    // Warning, this is here to show you how this might work, but it hides
+    // the fact that setItem will clobber complex objects ([], {}) into a
+    // string while adding them to the database.
     capture_local_storage_changes() {
         let _this = this;
         if (this.is_capturing_local_storage_events == false) {
@@ -241,8 +254,4 @@ class Dispatcher {
     }    
 }
 
-
-export {
-    Dispatcher,
-    capture_local_storage_changes
-};
+export { Dispatcher };

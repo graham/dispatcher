@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <script> var exports = {}; </script>
+    <!-- First we include the library that will help us manage modules. -->
+    <script src="../dist/dispatch.js"> </script>
+
+    <!-- We configure some of our larger libraries and do any startup we need to -->
+    <script src="https://fb.me/react-15.3.0.js"> </script>
+    <script src="https://fb.me/react-dom-15.3.0.js"> </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.min.js"> </script>
+  </head>
+  <body>
+    <div id="example">How is this happening</div>
+    <script type="text/babel">
+     var MyWidget = React.createClass({
+         getInitialState: function() {
+             return {tick: 0};
+         },
+
+         render: function() {
+             return <h1>Hello World ---> {this.state.tick}</h1>
+         }
+     });
+
+     var wid = <MyWidget />
+     var bound = ReactDOM.render(wid, document.getElementById('example'));
+
+     var d = new Dispatcher();
+     d.listen('page.tick', bound);
+     
+     var count = 0;
+     function update() {
+         count += 1;
+         d.notify('page', {'tick':count});
+         setTimeout(function() { update(); }, 100);
+     }
+     update();
+    </script>
+  </body>
+</html>

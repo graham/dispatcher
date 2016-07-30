@@ -61,6 +61,7 @@ function dispatch_object_to_target(_dispatcher, event, routing_search, payload, 
     var sp_search = routing_search.split('.');
     var final_payload = payload;
     var routing_path = [];
+    var last_successful_search_part = null;
     for (var index = 0; index < sp_search.length; index++) {
         var event_part = sp_event[index];
         var search_part = sp_search[index];
@@ -75,11 +76,7 @@ function dispatch_object_to_target(_dispatcher, event, routing_search, payload, 
             }
             else if (final_payload[search_part] != undefined) {
                 final_payload = final_payload[search_part];
-                if (index == sp_search.length - 1) {
-                    var ret_d = {};
-                    ret_d[search_part] = final_payload;
-                    final_payload = ret_d;
-                }
+                last_successful_search_part = search_part;
                 routing_path.push(search_part);
             }
             else {
@@ -90,8 +87,14 @@ function dispatch_object_to_target(_dispatcher, event, routing_search, payload, 
             return false;
         }
         else {
+            last_successful_search_part = event_part;
             routing_path.push(event_part);
         }
+    }
+    if (last_successful_search_part != null) {
+        var d = {};
+        d[last_successful_search_part] = final_payload;
+        final_payload = d;
     }
     return target_fn(final_payload, routing_path.join('.'));
 }
@@ -111,7 +114,10 @@ var Dispatcher = (function () {
     // this calls setState (which is the norm for React).
     Dispatcher.prototype.listen = function (routing_key, target) {
         var fn_name = this.function_name;
-        this.listeners.push([routing_key, function (args) { target[fn_name](args); }]);
+        this.listeners.push([routing_key,
+            function () {
+                target.setState(arguments[0]);
+            }]);
     };
     // Listen with a custom function callback.
     Dispatcher.prototype.listen_fn = function (routing_key, target) {
@@ -119,7 +125,9 @@ var Dispatcher = (function () {
     };
     // Notify listeners that you have data for a key.
     Dispatcher.prototype.notify = function (event_routing_key, args) {
-        console.log('notify: ' + event_routing_key + ' with ' + JSON.stringify(args));
+        if (event_routing_key.indexOf('*') > -1) {
+            throw "You can't notify with a *; use flush or broadcast.";
+        }
         this.event_queue.push([event_routing_key, args]);
         if (this.is_dispatching == false) {
             this.flush_queue();
@@ -197,6 +205,9 @@ var Dispatcher = (function () {
         }
         this.listeners = remaining_listeners;
     };
+    // Warning, this is here to show you how this might work, but it hides
+    // the fact that setItem will clobber complex objects ([], {}) into a
+    // string while adding them to the database.
     Dispatcher.prototype.capture_local_storage_changes = function () {
         var _this = this;
         if (this.is_capturing_local_storage_events == false) {
