@@ -31,7 +31,7 @@ So everything is solved right? __not quite__
 
 Bringing these worlds together can be very difficult, and while React takes care of the state, code and representation of single elements, it doesn't solve the problem of tying together a large application.
 
-Flux, a application architecture more than a solution, recommends the following:
+Flux, a application architecture by facebook, recommends the following:
 
 > We often pass the entire state of the store down the chain of views in a single object, allowing different descendants to use what they need. In addition to keeping the controller-like behavior at the top of the hierarchy, and thus keeping our descendant views as functionally pure as possible, passing down the entire state of the store in a single object also has the effect of reducing the number of props we need to manage.
 
