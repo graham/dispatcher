@@ -27,7 +27,7 @@
    });
    
    var gd = new Dispatcher();
-   
+
    function appendTest(test) {
        var tempd = document.createElement('div');
        document.getElementById('tests').appendChild(tempd);
@@ -36,5 +36,10 @@
 
    var newtest = React.createElement(DispatcherTest, {}, []);
    appendTest(newtest);
+
+   gd.listen('test1.done', newtest);
+   setTimeout(function() {
+       gd.notify('test1', {'state':True})
+   }, 1000);
   </script>
 </html>
