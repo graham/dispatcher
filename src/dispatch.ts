@@ -56,7 +56,9 @@
    or objects.
 */
 
-function dispatch_object_to_target(_dispatcher:Dispatcher, event:string, routing_search:string, payload:any, target_fn:any):any {
+function dispatch_object_to_target(_dispatcher:Dispatcher, event:string,
+                                   routing_search:string, payload:any,
+                                   target_fn:any, options:any):any {
     let sp_event:Array<string> = event.split('.');
     let sp_search:Array<string> = routing_search.split('.');
     let final_payload = payload;
@@ -133,17 +135,19 @@ class Dispatcher {
 
     // Call the `function_name` on the target object. By default
     // this calls setState (which is the norm for React).
-    listen(routing_key, target) {
+    listen(routing_key, target, options) {
         let fn_name = this.function_name;
         this.listeners.push([routing_key,
                              function() {
                                  target.setState(arguments[0]);
-                             }]);
+                             },
+                             options
+                            ]);
     }
 
     // Listen with a custom function callback.
-    listen_fn(routing_key, target) {
-        this.listeners.push([routing_key, target]);
+    listen_fn(routing_key, target, options) {
+        this.listeners.push([routing_key, target, options]);
     }
 
     // Notify listeners that you have data for a key.
@@ -167,7 +171,8 @@ class Dispatcher {
         }
     }
 
-    // 
+    // Flush will notify any listener that matches a "startswith" comparison
+    // Usage in documentation will give more insight into why you might need this.
     flush(event_routing_key, args) {
         for(let obj of this.listeners) {
             let fn = obj[1];
@@ -176,7 +181,6 @@ class Dispatcher {
                 fn(args, '-');
             }
         }
-        
     }
 
     flush_queue() {
@@ -220,10 +224,16 @@ class Dispatcher {
         for(let row of this.listeners) {
             let object_routing:string = row[0];
             let object_target_fn:any = row[1];
+            let object_options:any = row[2];
 
             try {
                 // Attempt to dispatch, with some extra rules to dig into objects.
-                dispatch_object_to_target(this, event_routing_key, object_routing, args, object_target_fn);
+                dispatch_object_to_target(this,
+                                          event_routing_key,
+                                          object_routing,
+                                          args,
+                                          object_target_fn,
+                                          object_options);
 
                 // If we make it here, we didn't throw an exception (or we didn't call fn)
                 remaining_listeners.push(row);
