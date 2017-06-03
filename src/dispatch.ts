@@ -93,7 +93,7 @@ function dispatch_object_to_target(_dispatcher:Dispatcher, event:string,
     }
 
     if (last_successful_search_part != null) {
-        var d = {};
+        var d: { [id:string] : string} = {};
         d[last_successful_search_part] = final_payload;
         final_payload = d;
     }
@@ -135,7 +135,7 @@ class Dispatcher {
 
     // Call the `function_name` on the target object. By default
     // this calls setState (which is the norm for React).
-    listen(routing_key, target, options) {
+    listen(routing_key:string, target:any, options:any) {
         let fn_name = this.function_name;
         this.listeners.push([routing_key,
                              function() {
@@ -146,12 +146,12 @@ class Dispatcher {
     }
 
     // Listen with a custom function callback.
-    listen_fn(routing_key, target, options) {
+    listen_fn(routing_key:string, target:any, options:any) {
         this.listeners.push([routing_key, target, options]);
     }
 
     // Notify listeners that you have data for a key.
-    notify(event_routing_key, args) {
+    notify(event_routing_key:string, args:any) {
         if (event_routing_key.indexOf('*') > -1) {
             throw "You can't notify with a *; use flush or broadcast.";
         }
@@ -164,7 +164,7 @@ class Dispatcher {
     // Broadcast an event to all handlers, regardless of their listening key.
     // This can be used to reset all of your handlers, or to notify them of some
     // other global change.
-    broadcast(event) {
+    broadcast(event:any) {
         for(let obj of this.listeners) {
             let fn = obj[1];
             fn(event, '_');
@@ -173,7 +173,7 @@ class Dispatcher {
 
     // Flush will notify any listener that matches a "startswith" comparison
     // Usage in documentation will give more insight into why you might need this.
-    flush(event_routing_key, args) {
+    flush(event_routing_key:string, args:any) {
         for(let obj of this.listeners) {
             let fn = obj[1];
             let key = obj[0];
@@ -218,7 +218,7 @@ class Dispatcher {
     }
 
     // The actual work of dispatching a single event.
-    dispatch_event(event_routing_key, args) {
+    dispatch_event(event_routing_key:string, args:any) {
         let remaining_listeners:Array<any> = [];
 
         for(let row of this.listeners) {
